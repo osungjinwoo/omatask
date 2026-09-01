@@ -17,6 +17,10 @@ A local task list and notes bar widget for [Omarchy](https://omarchy.org). Day-b
 - **Fully local** — state lives at `~/.local/state/omarchy/<plugin-id>/{tasks,notes}.json`. No network calls, no backend.
 - **Multi-monitor safe** — state is owned by a single shared `service` (not duplicated per bar instance), so a task added from one monitor's popup shows up identically on every other monitor's.
 
+## Requirements
+
+- `wl-copy` (from `wl-clipboard`) — used for the note "copy" action. Present by default on Omarchy.
+
 ## Install
 
 ```bash
