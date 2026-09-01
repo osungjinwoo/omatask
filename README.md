@@ -26,8 +26,8 @@ omarchy plugin add https://github.com/osungjinwoo/omatask.git --enable
 Or manually:
 
 ```bash
-git clone https://github.com/osungjinwoo/omatask.git ~/.config/omarchy/plugins/sung.omatask
-omarchy plugin enable sung.omatask
+git clone https://github.com/osungjinwoo/omatask.git ~/.config/omarchy/plugins/io.github.osungjinwoo.omatask
+omarchy plugin enable io.github.osungjinwoo.omatask
 ```
 
 ## Keyboard shortcuts (panel open)

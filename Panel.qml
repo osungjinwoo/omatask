@@ -13,8 +13,8 @@ import "TodoStore.js" as Store
 // tune without a visual feedback loop).
 Panel {
   id: root
-  moduleName: "sung.omatask"
-  ipcTarget: "sung.omatask"
+  moduleName: "io.github.osungjinwoo.omatask"
+  ipcTarget: "io.github.osungjinwoo.omatask"
   manageIpc: false // BarWidget.qml already owns the IpcHandler for this target
 
   property var anchorItem: null

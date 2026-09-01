@@ -134,7 +134,7 @@ function parse(raw) {
       return t
     })
   } catch (e) {
-    console.warn("sung.omatask: failed to parse tasks.json:", e)
+    console.warn("io.github.osungjinwoo.omatask: failed to parse tasks.json:", e)
     return []
   }
 }
@@ -170,7 +170,7 @@ function parseNotes(raw) {
       return n
     })
   } catch (e) {
-    console.warn("sung.omatask: failed to parse notes.json:", e)
+    console.warn("io.github.osungjinwoo.omatask: failed to parse notes.json:", e)
     return []
   }
 }

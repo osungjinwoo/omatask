@@ -8,7 +8,7 @@ import qs.Ui
 // the bar icon + pending-count badge, Panel.qml owns the floating content.
 BarWidget {
   id: root
-  moduleName: "sung.omatask"
+  moduleName: "io.github.osungjinwoo.omatask"
 
   readonly property bool opened: panelLoader.item ? panelLoader.item.opened === true : false
   readonly property int pendingToday: panelLoader.item ? (panelLoader.item.pendingTodayCount || 0) : 0
@@ -32,7 +32,7 @@ BarWidget {
     if (panelLoader.item) panelLoader.item.closeForPopoutSwitch()
   }
 
-  readonly property var service: bar?.shell?.serviceFor("sung.omatask")
+  readonly property var service: bar?.shell?.serviceFor("io.github.osungjinwoo.omatask")
 
   function injectPanel() {
     var target = panelLoader.item
@@ -61,7 +61,7 @@ BarWidget {
   }
 
   IpcHandler {
-    target: "sung.omatask"
+    target: "io.github.osungjinwoo.omatask"
 
     function open(): void { root.open() }
     function close(): void { root.close() }

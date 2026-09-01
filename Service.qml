@@ -21,7 +21,7 @@ Item {
   property var notes: []
   property bool notesLoaded: false
 
-  readonly property string stateDir: Quickshell.env("HOME") + "/.local/state/omarchy/sung.omatask/"
+  readonly property string stateDir: Quickshell.env("HOME") + "/.local/state/omarchy/io.github.osungjinwoo.omatask/"
   readonly property string tasksPath: stateDir + "tasks.json"
   readonly property string notesPath: stateDir + "notes.json"
 
