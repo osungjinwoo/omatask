@@ -20,6 +20,7 @@ A local task list and notes bar widget for [Omarchy](https://omarchy.org). Day-b
 ## Requirements
 
 - `wl-copy` (from `wl-clipboard`) — used for the note "copy" action. Present by default on Omarchy.
+- `python3` — runs `statehelper.py`, a small subprocess this plugin shells out to for loading/saving `tasks.json`/`notes.json`. It exists because QML/JS has no syscall access: the helper opens the state directory once with `O_NOFOLLOW`, does every read/write relative to that held directory descriptor, and writes via a private temp file + `fsync` + atomic rename, so a symlink or FIFO swapped into that directory can't be followed or block the process. Present by default on Omarchy/Arch.
 
 ## Install
 

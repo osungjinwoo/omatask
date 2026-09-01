@@ -107,7 +107,7 @@ function makeId(prefix) {
 function makeTask(text, dateISO, time, priority, order) {
   return {
     id: makeId("t"),
-    text: text,
+    text: clampText(text, MAX_TEXT_LEN),
     date: dateISO,
     time: time || "",
     priority: priority || "normal",
@@ -116,8 +116,18 @@ function makeTask(text, dateISO, time, priority, order) {
   }
 }
 
+// Re-clamped right before writing, not just trusted from creation/edit
+// time — the last line of defense against anything that reaches this
+// point over-sized (an in-memory array assembled some other way, a bug
+// elsewhere) so a corrupt/oversized state file is never a thing this
+// plugin itself produces.
 function serialize(tasks) {
-  return JSON.stringify({ version: 3, tasks: tasks }, null, 2) + "\n"
+  var bounded = tasks.slice(0, MAX_ITEMS).map(function(t) {
+    var copy = Object.assign({}, t)
+    copy.text = clampText(copy.text, MAX_TEXT_LEN)
+    return copy
+  })
+  return JSON.stringify({ version: 3, tasks: bounded }, null, 2) + "\n"
 }
 
 // Defensive caps applied on load: a tampered/corrupt state file (e.g. one
@@ -131,6 +141,24 @@ var MAX_RAW_LEN = 8 * 1024 * 1024
 function clampText(s, max) {
   s = typeof s === "string" ? s : ""
   return s.length > max ? s.slice(0, max) : s
+}
+
+// Exposed the same way as monthNames() above — a function, not a bare
+// top-level var, so it's reliably visible on the imported module object.
+// Previously these caps were only applied on load (parse/parseNotes),
+// which left creating/editing a task or note, and serialize()/
+// serializeNotes(), able to write out an unbounded array or unbounded
+// per-item text — the cap only bit once, on the *next* app restart.
+// Every mutation path (Panel.qml's add/edit) and every write path
+// (serialize/serializeNotes below) now goes through these too.
+function maxItems() { return MAX_ITEMS }
+function maxTextLen() { return MAX_TEXT_LEN }
+
+// Whether `list` has room for one more item under the same cap load()
+// enforces — checked by the composer/editor before pushing a new task or
+// note, so the array can't grow past what a restart would truncate to.
+function canAddItem(list) {
+  return list.length < MAX_ITEMS
 }
 
 // v1/v2 files stored day:"today"|"tomorrow" instead of a real date, and may
@@ -162,8 +190,8 @@ function parse(raw) {
 function makeNote(title, body, order) {
   return {
     id: makeId("n"),
-    title: title || "",
-    body: body || "",
+    title: clampText(title || "", MAX_TEXT_LEN),
+    body: clampText(body || "", MAX_TEXT_LEN),
     order: order || 0,
     updatedAt: Date.now()
   }
@@ -175,7 +203,13 @@ function notePreview(note) {
 }
 
 function serializeNotes(notes) {
-  return JSON.stringify({ version: 1, notes: notes }, null, 2) + "\n"
+  var bounded = notes.slice(0, MAX_ITEMS).map(function(n) {
+    var copy = Object.assign({}, n)
+    copy.title = clampText(copy.title, MAX_TEXT_LEN)
+    copy.body = clampText(copy.body, MAX_TEXT_LEN)
+    return copy
+  })
+  return JSON.stringify({ version: 1, notes: bounded }, null, 2) + "\n"
 }
 
 function parseNotes(raw) {

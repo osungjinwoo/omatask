@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "id": "io.github.osungjinwoo.omatask",
   "name": "omatask",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "author": "sung",
   "license": "MIT",
   "description": "Local task list (today/tomorrow, priorities, drag reorder, day agenda) plus plain-text notes — nothing leaves the machine.",

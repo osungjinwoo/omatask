@@ -219,10 +219,13 @@ Panel {
       root.service.tasks = root.tasks.map(function(t) {
         if (t.id !== root.editingId) return t
         var copy = Object.assign({}, t)
-        copy.text = text; copy.priority = root.composerPriority; copy.date = root.composerDate; copy.time = time
+        copy.text = Store.clampText(text, Store.maxTextLen()); copy.priority = root.composerPriority; copy.date = root.composerDate; copy.time = time
         return copy
       })
-    } else {
+    } else if (Store.canAddItem(root.tasks)) {
+      // Same cap Store.parse() truncates to on load — enforced here too so
+      // an unbounded number of tasks can never accumulate in the first
+      // place (previously the array only got clamped on the *next* reload).
       var list = root.tasks.slice()
       var date = root.composerDate
       var bucket = Store.tasksForDate(root.tasks, date)
@@ -317,10 +320,10 @@ Panel {
       root.service.notes = root.notes.map(function(n) {
         if (n.id !== root.editingNoteId) return n
         var copy = Object.assign({}, n)
-        copy.title = title; copy.body = body; copy.updatedAt = Date.now()
+        copy.title = Store.clampText(title, Store.maxTextLen()); copy.body = Store.clampText(body, Store.maxTextLen()); copy.updatedAt = Date.now()
         return copy
       })
-    } else {
+    } else if (Store.canAddItem(root.notes)) {
       var list = root.notes.slice()
       list.push(Store.makeNote(title, body, Store.minOrder(root.notes) - 1))
       root.service.notes = list
