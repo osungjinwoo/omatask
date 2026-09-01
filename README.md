@@ -30,6 +30,14 @@ git clone https://github.com/osungjinwoo/omatask.git ~/.config/omarchy/plugins/i
 omarchy plugin enable io.github.osungjinwoo.omatask
 ```
 
+## Uninstall
+
+```bash
+omarchy plugin remove io.github.osungjinwoo.omatask
+```
+
+This removes the plugin from `~/.config/omarchy/plugins/` and takes it out of the bar. It does not delete your saved tasks/notes at `~/.local/state/omarchy/io.github.osungjinwoo.omatask/` — remove that directory yourself if you also want the data gone.
+
 ## Keyboard shortcuts (panel open)
 
 ```
