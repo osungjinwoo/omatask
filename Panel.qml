@@ -332,13 +332,26 @@ Panel {
     root.service.notes = root.notes.filter(function(n) { return n.id !== id })
     if (root.editingNoteId === id) root.closeNoteEditor()
   }
+  // Note content goes to wl-copy over stdin, not argv — argv is world-
+  // readable via /proc/<pid>/cmdline (and `ps`) for the duration of the
+  // process, which would leak private note text to any other local user.
   function copyNote(note) {
-    copyProc.command = ["wl-copy", note.body]
+    if (!note) return
+    copyProc._pending = Store.clampText(note.body, 200000)
+    copyProc.command = ["wl-copy"]
     copyProc.running = true
   }
 
   Process {
     id: copyProc
+    property string _pending: ""
+    stdinEnabled: true
+    onStarted: {
+      var data = _pending
+      _pending = ""
+      write(data)
+      stdinEnabled = false // closes the write channel (EOF) so wl-copy proceeds
+    }
   }
 
   // Shared across monitors (Service.qml) so completing a task from any

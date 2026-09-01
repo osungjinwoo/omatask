@@ -120,17 +120,35 @@ function serialize(tasks) {
   return JSON.stringify({ version: 3, tasks: tasks }, null, 2) + "\n"
 }
 
+// Defensive caps applied on load: a tampered/corrupt state file (e.g. one
+// that slipped past Service.qml's size check, or was hand-edited) should
+// degrade to "truncated" rather than hand an unbounded array or unbounded
+// per-item strings to the UI/render layer.
+var MAX_ITEMS = 5000
+var MAX_TEXT_LEN = 20000
+var MAX_RAW_LEN = 8 * 1024 * 1024
+
+function clampText(s, max) {
+  s = typeof s === "string" ? s : ""
+  return s.length > max ? s.slice(0, max) : s
+}
+
 // v1/v2 files stored day:"today"|"tomorrow" instead of a real date, and may
 // be missing `order`. Both get backfilled on load so old data keeps working.
 function parse(raw) {
   if (!raw || !raw.trim()) return []
+  if (raw.length > MAX_RAW_LEN) {
+    console.warn("io.github.osungjinwoo.omatask: tasks.json too large, ignoring")
+    return []
+  }
   try {
     var data = JSON.parse(raw)
     if (!data || !Array.isArray(data.tasks)) return []
     var today = todayISO()
-    return data.tasks.map(function(t, i) {
+    return data.tasks.slice(0, MAX_ITEMS).map(function(t, i) {
       if (typeof t.order !== "number") t.order = i
       if (!t.date) t.date = t.day === "tomorrow" ? addDaysISO(today, 1) : today
+      t.text = clampText(t.text, MAX_TEXT_LEN)
       return t
     })
   } catch (e) {
@@ -162,11 +180,17 @@ function serializeNotes(notes) {
 
 function parseNotes(raw) {
   if (!raw || !raw.trim()) return []
+  if (raw.length > MAX_RAW_LEN) {
+    console.warn("io.github.osungjinwoo.omatask: notes.json too large, ignoring")
+    return []
+  }
   try {
     var data = JSON.parse(raw)
     if (!data || !Array.isArray(data.notes)) return []
-    return data.notes.map(function(n, i) {
+    return data.notes.slice(0, MAX_ITEMS).map(function(n, i) {
       if (typeof n.order !== "number") n.order = i
+      n.title = clampText(n.title, MAX_TEXT_LEN)
+      n.body = clampText(n.body, MAX_TEXT_LEN)
       return n
     })
   } catch (e) {
