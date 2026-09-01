@@ -1,0 +1,42 @@
+# omatask
+
+A local task list and notes bar widget for [Omarchy](https://omarchy.org). Day-by-day task navigation, drag reorder, priorities, a day-agenda timeline, and plain-text notes — nothing leaves the machine.
+
+![Tasks view](screenshots/tasks.png)
+![Notes view](screenshots/notes.png)
+
+## Features
+
+- **Day-by-day tasks** — navigate any date with ‹ ›, not just fixed "today/tomorrow" tabs. "Hoje" (Today) also rolls forward every still-open task left behind on an earlier day, so nothing quietly falls through the cracks — it stays a visible pendency until you complete, postpone, or delete it.
+- **Type dates and times inline** — typing "reunião amanhã 15h" in the composer detects the date/time from the text itself, no picker click required (a 📅/🕐 picker is also there if you prefer clicking).
+- **Priorities** (Urgente / Normal / Pode esperar) shown as a color stripe, plus a one-shot "organize by priority" action — never a standing auto-sort that fights your manual drag order.
+- **Manual drag-to-reorder** for both tasks and notes.
+- **Day-agenda timeline** for whichever day you're viewing, with a live "now" line.
+- **Notes** — free-text cards (title + body), copy-to-clipboard, drag reorder. Rendered strictly as plain text (`Text.PlainText`/`TextEdit.PlainText`) — pasted content is never interpreted as HTML, so a note can never trigger an image fetch or other markup side effect.
+- **A real dissolve-then-remove animation** (`QtQuick.Particles`) on complete/delete.
+- **Fully local** — state lives at `~/.local/state/omarchy/<plugin-id>/{tasks,notes}.json`. No network calls, no backend.
+- **Multi-monitor safe** — state is owned by a single shared `service` (not duplicated per bar instance), so a task added from one monitor's popup shows up identically on every other monitor's.
+
+## Install
+
+```bash
+omarchy plugin add https://github.com/osungjinwoo/omatask.git --enable
+```
+
+Or manually:
+
+```bash
+git clone https://github.com/osungjinwoo/omatask.git ~/.config/omarchy/plugins/sung.omatask
+omarchy plugin enable sung.omatask
+```
+
+## Keyboard shortcuts (panel open)
+
+```
+↑↓ navigate   ↔ switch day   enter complete   p postpone   e edit
+d delete      / new task     t/n tasks/notes  esc close
+```
+
+## License
+
+MIT — see [LICENSE](LICENSE).

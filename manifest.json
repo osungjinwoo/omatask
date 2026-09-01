@@ -1,0 +1,27 @@
+{
+  "schemaVersion": 1,
+  "id": "sung.omatask",
+  "name": "omatask",
+  "version": "0.2.0",
+  "author": "sung",
+  "license": "MIT",
+  "description": "Local task list (today/tomorrow, priorities, drag reorder, day agenda) plus plain-text notes — nothing leaves the machine.",
+  "kinds": [
+    "service",
+    "bar-widget"
+  ],
+  "keepLoaded": true,
+  "activation": "on-demand",
+  "entryPoints": {
+    "service": "Service.qml",
+    "barWidget": "BarWidget.qml"
+  },
+  "barWidget": {
+    "displayName": "omatask",
+    "description": "Local tasks + notes, no backend, no network",
+    "category": "Productivity",
+    "aliases": ["tasks", "tarefas", "todo", "notes", "notas"],
+    "allowMultiple": false,
+    "defaultSection": "right"
+  }
+}
