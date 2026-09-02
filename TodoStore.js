@@ -122,11 +122,16 @@ function makeTask(text, dateISO, time, priority, order) {
 // elsewhere) so a corrupt/oversized state file is never a thing this
 // plugin itself produces.
 function serialize(tasks) {
-  var bounded = tasks.slice(0, MAX_ITEMS).map(function(t) {
-    var copy = Object.assign({}, t)
+  var bounded = []
+  var used = 64
+  for (var i = 0; i < tasks.length && bounded.length < MAX_ITEMS; i++) {
+    var copy = Object.assign({}, tasks[i])
     copy.text = clampText(copy.text, MAX_TEXT_LEN)
-    return copy
-  })
+    var itemBytes = byteLength(JSON.stringify(copy)) + PRETTY_OVERHEAD_PER_ITEM
+    if (used + itemBytes > SERIALIZE_BUDGET) break
+    used += itemBytes
+    bounded.push(copy)
+  }
   return JSON.stringify({ version: 3, tasks: bounded }, null, 2) + "\n"
 }
 
@@ -138,9 +143,58 @@ var MAX_ITEMS = 5000
 var MAX_TEXT_LEN = 20000
 var MAX_RAW_LEN = 8 * 1024 * 1024
 
+// Hard ceiling statehelper.py's save() refuses to write past (Service.qml
+// passes this same number to the helper as `max_bytes`) — kept here as the
+// single source of truth so the UI-facing limits below and the helper's
+// actual cap can't drift apart the way they used to (5000 items x 20000
+// chars could serialize to ~100x the helper's 5 MiB limit, so a full task
+// list could become permanently unsavable with only load-time truncation to
+// notice, and silently).
+var MAX_STATE_BYTES = 5242880
+
+// Budget serialize()/serializeNotes() actually write to, below the hard
+// ceiling: JSON.stringify(..., null, 2)'s per-item indentation/newlines
+// aren't counted by the compact per-item estimate below, and up to
+// MAX_ITEMS small items each add a fixed slice of that. 768 KiB comfortably
+// covers indentation for a full 5000-item list while leaving ~4.5 MiB of
+// real, usable budget.
+var SERIALIZE_BUDGET = MAX_STATE_BYTES - 786432
+var PRETTY_OVERHEAD_PER_ITEM = 96
+
+// Worst case for one not-yet-added item — used by canAddItem() so the UI
+// never accepts an item serialize()/serializeNotes() would then have to
+// silently drop. Two things this needs to get right, both found by
+// deliberately trying to break this gate rather than just exercising the
+// happy path:
+//   1. Bytes-per-JS-char: a 4-byte UTF-8 codepoint needs a surrogate pair in
+//      JS strings (2 UTF-16 units for those 4 bytes = 2 bytes/unit); a
+//      3-byte BMP codepoint needs only 1 unit (3 bytes/unit) — that's the
+//      real worst case per unit of clampText()'s length limit, not 4.
+//   2. Field count: a task has one long field (text), but a note has TWO
+//      independently MAX_TEXT_LEN-capped fields (title + body). Sizing this
+//      off a single field (a task's worst case) let canAddItem() approve a
+//      note near the budget boundary that serializeNotes() then had to
+//      drop — reproducing the exact bug this cap exists to prevent, just in
+//      a narrower window. Must cover the worse of the two callers.
+var MAX_ITEM_BYTES = MAX_TEXT_LEN * 3 * 2 + PRETTY_OVERHEAD_PER_ITEM + 2048
+
 function clampText(s, max) {
   s = typeof s === "string" ? s : ""
   return s.length > max ? s.slice(0, max) : s
+}
+
+// Real UTF-8 byte length, not JS string length (which counts UTF-16 code
+// units) — needed because the helper's max_bytes check is a byte count.
+// encodeURIComponent turns every non-ASCII byte into a "%XX" escape, so
+// counting each escape as one byte and everything else as-is recovers the
+// true UTF-8 length without needing TextEncoder (not guaranteed present in
+// this QML JS engine).
+function byteLength(s) {
+  return encodeURIComponent(s).replace(/%[0-9A-F]{2}/g, "x").length
+}
+
+function estimatedBytes(list) {
+  return list.reduce(function(sum, item) { return sum + byteLength(JSON.stringify(item)) + PRETTY_OVERHEAD_PER_ITEM }, 64)
 }
 
 // Exposed the same way as monthNames() above — a function, not a bare
@@ -154,11 +208,15 @@ function clampText(s, max) {
 function maxItems() { return MAX_ITEMS }
 function maxTextLen() { return MAX_TEXT_LEN }
 
-// Whether `list` has room for one more item under the same cap load()
-// enforces — checked by the composer/editor before pushing a new task or
-// note, so the array can't grow past what a restart would truncate to.
+// Whether `list` has room for one more item — checked by the composer/
+// editor before pushing a new task or note. Both the item-count cap load()
+// enforces AND the serialize() byte budget above must hold: count alone
+// used to let the UI accept an item that serialize() would then silently
+// drop (or that the helper would flat-out refuse to write), leaving state
+// the UI showed as saved but that never actually reached disk.
 function canAddItem(list) {
-  return list.length < MAX_ITEMS
+  if (list.length >= MAX_ITEMS) return false
+  return estimatedBytes(list) + MAX_ITEM_BYTES <= SERIALIZE_BUDGET
 }
 
 // v1/v2 files stored day:"today"|"tomorrow" instead of a real date, and may
@@ -203,12 +261,17 @@ function notePreview(note) {
 }
 
 function serializeNotes(notes) {
-  var bounded = notes.slice(0, MAX_ITEMS).map(function(n) {
-    var copy = Object.assign({}, n)
+  var bounded = []
+  var used = 64
+  for (var i = 0; i < notes.length && bounded.length < MAX_ITEMS; i++) {
+    var copy = Object.assign({}, notes[i])
     copy.title = clampText(copy.title, MAX_TEXT_LEN)
     copy.body = clampText(copy.body, MAX_TEXT_LEN)
-    return copy
-  })
+    var itemBytes = byteLength(JSON.stringify(copy)) + PRETTY_OVERHEAD_PER_ITEM
+    if (used + itemBytes > SERIALIZE_BUDGET) break
+    used += itemBytes
+    bounded.push(copy)
+  }
   return JSON.stringify({ version: 1, notes: bounded }, null, 2) + "\n"
 }
 

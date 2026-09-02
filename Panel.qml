@@ -480,6 +480,32 @@ Panel {
             }
           }
 
+          // ---- save-failure banner: surfaces a helper write failure that
+          // used to only be a console.warn nobody would see ----
+          Rectangle {
+            visible: root.service ? root.service.saveError : false
+            width: parent.width
+            height: visible ? saveErrorText.implicitHeight + Style.space(12) : 0
+            radius: Style.space(6)
+            color: Qt.rgba(1, 0.3, 0.3, 0.12)
+            border.width: 1
+            border.color: Qt.rgba(1, 0.3, 0.3, 0.35)
+            clip: true
+            Text {
+              id: saveErrorText
+              anchors.centerIn: parent
+              width: parent.width - Style.space(16)
+              text: "Não foi possível salvar — as últimas alterações podem ser perdidas."
+              wrapMode: Text.WordWrap
+              horizontalAlignment: Text.AlignHCenter
+              color: Color.urgent
+              font.family: root.contentFontFamily
+              font.pixelSize: Style.font.caption
+              textFormat: Text.PlainText
+            }
+            Behavior on height { NumberAnimation { duration: 120 } }
+          }
+
           // ---- mode switch: sliding pill, not two loose buttons ----
           Rectangle {
             width: parent.width

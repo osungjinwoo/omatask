@@ -103,8 +103,36 @@ Item {
     return ["python3", root.helperPath, root.stateDir, op, name, String(root.maxStateFileBytes)]
   }
 
+  // Surfaced to Panel.qml as a small warning banner (see saveError below) —
+  // a helper failure used to only console.warn, invisible unless someone
+  // was watching the shell's stderr. Tracked as two independent flags, one
+  // per file: tasks.json and notes.json save through separate Process
+  // instances, so a single shared flag let a successful notes save clear
+  // the banner while a still-unresolved tasks save failure sat hidden
+  // underneath it. `saveError` below is the OR of both, for the banner to
+  // bind against without caring which file is the problem.
+  property bool tasksSaveError: false
+  property bool notesSaveError: false
+  readonly property bool saveError: tasksSaveError || notesSaveError
+
   function runSave(proc, name, content) {
-    proc._pending = content
+    // Never touch `proc.running`/`proc.command` here while a previous save
+    // for this same file is still in flight — Process doesn't queue a
+    // second start on top of one already running. Instead stash the latest
+    // content and a dirty flag; pumpSave() below either starts right away
+    // (the common case) or, if busy, gets re-invoked from onExited once the
+    // in-flight run finishes, so the newest content is never silently
+    // dropped just because it arrived mid-save.
+    proc._latest = content
+    proc._dirty = true
+    root.pumpSave(proc, name)
+  }
+
+  function pumpSave(proc, name) {
+    if (proc.running) return
+    if (!proc._dirty) return
+    proc._dirty = false
+    proc._pending = proc._latest
     proc.command = root.helperCommand("save", name)
     proc.running = true
   }
@@ -137,16 +165,28 @@ Item {
   Process {
     id: saveTasksProc
     property string _pending: ""
+    property string _latest: ""
+    property bool _dirty: false
     stdinEnabled: true
     onStarted: { var d = _pending; _pending = ""; write(d); stdinEnabled = false }
-    onExited: function(exitCode) { if (exitCode !== 0) console.warn("io.github.osungjinwoo.omatask: failed to save tasks.json") }
+    onExited: function(exitCode) {
+      if (exitCode !== 0) { console.warn("io.github.osungjinwoo.omatask: failed to save tasks.json"); root.tasksSaveError = true }
+      else root.tasksSaveError = false
+      root.pumpSave(saveTasksProc, "tasks.json")
+    }
   }
   Process {
     id: saveNotesProc
     property string _pending: ""
+    property string _latest: ""
+    property bool _dirty: false
     stdinEnabled: true
     onStarted: { var d = _pending; _pending = ""; write(d); stdinEnabled = false }
-    onExited: function(exitCode) { if (exitCode !== 0) console.warn("io.github.osungjinwoo.omatask: failed to save notes.json") }
+    onExited: function(exitCode) {
+      if (exitCode !== 0) { console.warn("io.github.osungjinwoo.omatask: failed to save notes.json"); root.notesSaveError = true }
+      else root.notesSaveError = false
+      root.pumpSave(saveNotesProc, "notes.json")
+    }
   }
 
   Component.onCompleted: Qt.callLater(function() {
